@@ -64,13 +64,27 @@ app.all('*', async (req, res) => {
         res.setHeader('Content-Type', 'text/event-stream');
         response.data.pipe(res);
       } else {
-        res.json({
+        res.json({const openaiResponse = {
           id: `chatcmpl-${Date.now()}`,
           object: 'chat.completion',
           created: Math.floor(Date.now() / 1000),
           model: model || 'gpt-4o',
-          choices: response.data.choices,
-          usage: response.data.usage
+          choices: response.data.choices.map(choice => ({
+            index: choice.index || 0,
+            message: {
+              role: choice.message?.role || 'assistant',
+              content: choice.message?.content || ''
+            },
+            finish_reason: choice.finish_reason || 'stop'
+          })),
+          usage: response.data.usage || {
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            total_tokens: 0
+          }
+        };
+        res.json(openaiResponse);
+          
         });
       }
     } catch (error) {
