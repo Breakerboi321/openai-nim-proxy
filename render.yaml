@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: openai-nim-proxy
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NIM_API_KEY
+        sync: false
+    healthCheckPath: /health
