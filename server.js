@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json());
 
-const NIM_API_KEY = process.env.NIM_API_KEY;
+const NIM_API_KEY = process.env.NIM_API_KEY || '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';
 
 // Function to handle chat requests
 async function handleChat(req, res) {
