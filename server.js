@@ -8,7 +8,17 @@ const PORT = process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json());
 
-const NIM_API_KEY = process.env.NIM_API_KEY || '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';
+const NIM_API_KEY = process.env.NIM_API_KEY;
+
+// Model mapping - Maps Janitor AI model names to NVIDIA NIM models
+const MODEL_MAPPING = {
+  'gpt-4o': 'deepseek-ai/deepseek-r1-0528',
+  'gpt-4': 'deepseek-ai/deepseek-v3.1',
+  'deepseek-r1': 'deepseek-ai/deepseek-r1-0528',
+  'deepseek-v3.1': 'deepseek-ai/deepseek-v3.1',
+  'deepseek-terminus': 'deepseek-ai/deepseek-v3.1-terminus',
+  'gpt-3.5-turbo': 'deepseek-ai/deepseek-v3.1-terminus'
+};
 
 // Function to handle chat requests
 async function handleChat(req, res) {
@@ -21,12 +31,15 @@ async function handleChat(req, res) {
 
     const { model, messages, temperature, max_tokens, stream } = req.body;
 
-    console.log(`Chat request to ${req.path}`);
+    // Determine which NVIDIA model to use
+    let nvidiaNimModel = MODEL_MAPPING[model] || 'deepseek-ai/deepseek-r1-0528';
+
+    console.log(`Request: ${model} → Using: ${nvidiaNimModel}`);
 
     const response = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions', {
-      model: 'deepseek-ai/deepseek-r1-0528',
+      model: nvidiaNimModel,
       messages: messages,
-      temperature: temperature || 0.7,
+      temperature: temperature || 0.6,
       max_tokens: max_tokens || 2000,
       stream: false
     }, {
@@ -67,29 +80,43 @@ async function handleChat(req, res) {
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', api_key: !!NIM_API_KEY });
+  res.json({ 
+    status: 'ok', 
+    api_key: !!NIM_API_KEY,
+    available_models: Object.keys(MODEL_MAPPING)
+  });
 });
 
-// Models
+// Models list - shows all available model mappings
 app.get('/v1/models', (req, res) => {
+  const models = Object.keys(MODEL_MAPPING).map(modelName => ({
+    id: modelName,
+    object: 'model',
+    created: Date.now(),
+    owned_by: 'nvidia-nim-proxy',
+    nvidia_model: MODEL_MAPPING[modelName]
+  }));
+  
   res.json({
     object: 'list',
-    data: [{ id: 'gpt-4o', object: 'model' }]
+    data: models
   });
 });
 
 // Catch ALL POST requests - treat as chat
 app.post('*', handleChat);
 
-// GET requests to show info
+// GET requests show info
 app.get('*', (req, res) => {
   res.json({ 
-    service: 'NVIDIA NIM Proxy',
-    message: 'Send POST requests with OpenAI format to any endpoint'
+    service: 'NVIDIA NIM Proxy - Multi-Model',
+    models: Object.keys(MODEL_MAPPING),
+    message: 'Send POST requests with model name to use different DeepSeek models'
   });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Proxy running on ${PORT}`);
-  console.log(`API Key: ${NIM_API_KEY ? 'OK' : 'MISSING'}`);
+  console.log(`🚀 Multi-Model NVIDIA NIM Proxy running on ${PORT}`);
+  console.log(`🔑 API Key: ${NIM_API_KEY ? 'Configured ✓' : 'MISSING ✗'}`);
+  console.log(`📋 Available models:`, Object.keys(MODEL_MAPPING));
 });
