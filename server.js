@@ -41,8 +41,8 @@ async function handleChat(req, res) {
     const response = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions', {
       model: nvidiaNimModel,
       messages: messages,
-      temperature: temperature || 0.5,
-      max_tokens: max_tokens || 400,
+      temperature: temperature || 0.8,
+      max_tokens: max_tokens || 3000,
       stream: false
     }, {
       headers: {
