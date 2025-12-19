@@ -12,6 +12,7 @@ const NIM_API_KEY = process.env.NIM_API_KEY || 'nvapi--u7w6HcyyaumK0Lrk8Ge1w0SIl
 
 // Model mapping - Maps Janitor AI model names to NVIDIA NIM models
 const MODEL_MAPPING = {
+  // DeepSeek models
   'gpt-4o': 'deepseek-ai/deepseek-r1-0528',
   'gpt-4': 'deepseek-ai/deepseek-v3.2',
   'gpt-3.5-turbo': 'deepseek-ai/deepseek-v3.1',
@@ -19,7 +20,17 @@ const MODEL_MAPPING = {
   'deepseek-v3.1': 'deepseek-ai/deepseek-v3.1',
   'deepseek-v3.2': 'deepseek-ai/deepseek-v3.2',
   'deepseek-terminus': 'deepseek-ai/deepseek-v3.1-terminus',
-  'claude-3-opus': 'deepseek-ai/deepseek-v3.2'
+  
+  // Meta Llama models
+  'llama-3.1-8b': 'meta/llama-3.1-8b-instruct',
+  'llama-3.1-70b': 'meta/llama-3.1-70b-instruct',
+  'llama-3.1-405b': 'meta/llama-3.1-405b-instruct',
+  'llama-3.3-70b': 'meta/llama-3.3-70b-instruct',
+  'llama-nemotron': 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
+  
+  // Mistral models
+  'mistral-7b': 'mistralai/mistral-7b-instruct-v0.3',
+  'mixtral-8x7b': 'mistralai/mixtral-8x7b-instruct-v0.1',
 };
 
 // Function to handle chat requests
