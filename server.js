@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json());
 
-const NIM_API_KEY = process.env.NIM_API_KEY || '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';
+const NIM_API_KEY = process.env.NIM_API_KEY || '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';
 
 // Model mapping - Maps Janitor AI model names to NVIDIA NIM models
 const MODEL_MAPPING = {
