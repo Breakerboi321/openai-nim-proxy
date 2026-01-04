@@ -89,6 +89,12 @@ const MODEL_MAPPING = {
   'qwen-3-next-80b': 'qwen/qwen3-next-80b-a3b-thinking',
   'qwen-coder-32b': 'qwen/qwen3-coder-32b-instruct',
   
+  // Kimi (Moonshot AI) models
+  'kimi-k2': 'moonshotai/kimi-k2-instruct',
+  'kimi-k2-0905': 'moonshotai/kimi-k2-instruct-0905',
+  'kimi-k2-thinking': 'moonshotai/kimi-k2-thinking',
+  'kimi-thinking': 'moonshotai/kimi-k2-thinking',
+  
   // OpenAI GPT-OSS
   'gpt-oss-120b': 'openai/gpt-oss-120b',
   'gpt-oss-20b': 'openai/gpt-oss-20b',
