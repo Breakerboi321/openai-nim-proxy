@@ -95,6 +95,10 @@ const MODEL_MAPPING = {
   'kimi-k2-thinking': 'moonshotai/kimi-k2-thinking',
   'kimi-thinking': 'moonshotai/kimi-k2-thinking',
   
+  // GLM models (Zhipu AI / Z.AI)
+  'glm-4.7': 'z-ai/glm4.7',
+  'glm4.7': 'z-ai/glm4.7',
+  
   // OpenAI GPT-OSS
   'gpt-oss-120b': 'openai/gpt-oss-120b',
   'gpt-oss-20b': 'openai/gpt-oss-20b',
