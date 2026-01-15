@@ -1,16 +1,15 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-// --- ADDED: Import the search library ---
-const { search } = require('duck-duck-scrape'); 
+const { search } = require('duck-duck-scrape');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Increase payload limit
 
-const NIM_API_KEY = process.env.NIM_API_KEY || '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';
+const NIM_API_KEY = process.env.NIM_API_KEY;
 
 // Rate limiting for DuckDuckGo searches
 let lastSearchTime = 0;
@@ -22,15 +21,13 @@ async function searchDuckDuckGo(query) {
   
   // Rate limit check
   if (now - lastSearchTime < SEARCH_COOLDOWN) {
-    // Skip search if cooling down to prevent IP bans
-    console.log(`⏳ Search cooldown active. Skipping.`);
-    return null;
+    const waitTime = Math.ceil((SEARCH_COOLDOWN - (now - lastSearchTime)) / 1000);
+    throw new Error(`Rate limit: Please wait ${waitTime} seconds before next search`);
   }
   
   try {
     console.log(`🔍 Searching DuckDuckGo: "${query}"`);
     
-    // --- UPDATED: Passing correct parameters to the library ---
     const results = await search(query, {
       safeSearch: 0 // Off for mature content
     });
@@ -121,31 +118,7 @@ async function handleChat(req, res) {
       });
     }
 
-    // Capture variables from request
-    let { model, messages, temperature, max_tokens, stream } = req.body;
-
-    // --- ADDED: Check if user is asking to search ---
-    const lastMessage = messages[messages.length - 1];
-    // Regex matches: "search for X", "google X", "look up X"
-    const searchRegex = /^(search for|search|google|look up|research) (.*)/i;
-
-    if (lastMessage && lastMessage.role === 'user') {
-      const match = lastMessage.content.match(searchRegex);
-      if (match && match[2]) {
-        // Run the search function you already had defined
-        const searchResults = await searchDuckDuckGo(match[2].trim());
-        
-        if (searchResults) {
-          // Add results to the conversation history as a System message 
-          // right before the user's message
-          messages.splice(messages.length - 1, 0, {
-            role: "system",
-            content: `[Web Search Results for "${match[2].trim()}"]:\n${searchResults}\n\n[Instruction: Use the above search results to answer the user's question accurately.]`
-          });
-        }
-      }
-    }
-    // --- END ADDED SEARCH LOGIC ---
+    const { model, messages, temperature, max_tokens, stream } = req.body;
 
     // Determine which NVIDIA model to use
     let nvidiaNimModel = MODEL_MAPPING[model] || 'deepseek-ai/deepseek-r1-0528';
@@ -155,8 +128,8 @@ async function handleChat(req, res) {
     const response = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions', {
       model: nvidiaNimModel,
       messages: messages,
-      temperature: temperature || 0.8,
-      max_tokens: max_tokens || 3000,
+      temperature: temperature || 0.5,
+      max_tokens: max_tokens || 200,  // Reduced to avoid payload errors
       stream: false
     }, {
       headers: {
