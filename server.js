@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+// --- ADDED: Import the search library ---
+const { search } = require('duck-duck-scrape'); 
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -20,13 +22,15 @@ async function searchDuckDuckGo(query) {
   
   // Rate limit check
   if (now - lastSearchTime < SEARCH_COOLDOWN) {
-    const waitTime = Math.ceil((SEARCH_COOLDOWN - (now - lastSearchTime)) / 1000);
-    throw new Error(`Rate limit: Please wait ${waitTime} seconds before next search`);
+    // Skip search if cooling down to prevent IP bans
+    console.log(`⏳ Search cooldown active. Skipping.`);
+    return null;
   }
   
   try {
     console.log(`🔍 Searching DuckDuckGo: "${query}"`);
     
+    // --- UPDATED: Passing correct parameters to the library ---
     const results = await search(query, {
       safeSearch: 0 // Off for mature content
     });
@@ -117,7 +121,31 @@ async function handleChat(req, res) {
       });
     }
 
-    const { model, messages, temperature, max_tokens, stream } = req.body;
+    // Capture variables from request
+    let { model, messages, temperature, max_tokens, stream } = req.body;
+
+    // --- ADDED: Check if user is asking to search ---
+    const lastMessage = messages[messages.length - 1];
+    // Regex matches: "search for X", "google X", "look up X"
+    const searchRegex = /^(search for|search|google|look up|research) (.*)/i;
+
+    if (lastMessage && lastMessage.role === 'user') {
+      const match = lastMessage.content.match(searchRegex);
+      if (match && match[2]) {
+        // Run the search function you already had defined
+        const searchResults = await searchDuckDuckGo(match[2].trim());
+        
+        if (searchResults) {
+          // Add results to the conversation history as a System message 
+          // right before the user's message
+          messages.splice(messages.length - 1, 0, {
+            role: "system",
+            content: `[Web Search Results for "${match[2].trim()}"]:\n${searchResults}\n\n[Instruction: Use the above search results to answer the user's question accurately.]`
+          });
+        }
+      }
+    }
+    // --- END ADDED SEARCH LOGIC ---
 
     // Determine which NVIDIA model to use
     let nvidiaNimModel = MODEL_MAPPING[model] || 'deepseek-ai/deepseek-r1-0528';
