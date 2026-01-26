@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-const NIM_API_KEY = process.env.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;
+const NIM_API_KEY = process.env.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;
 
 // Model mapping - Maps Janitor AI model names to NVIDIA NIM models
 const MODEL_MAPPING = {
@@ -117,16 +117,12 @@ async function handleChat(req, res) {
 
     const { model, messages, temperature, max_tokens, stream } = req.body;
 
-    // FIXED: Better model lookup
+    // Attempt to map the requested model
     let nvidiaNimModel = MODEL_MAPPING[model];
-    
-    // If not found, try to use it directly (for full NVIDIA model IDs)
-    if (!nvidiaNimModel) {
-      nvidiaNimModel = model;
-    }
-    
-    // Final fallback to GLM-4.7 (NOT R1!)
+
+    // If mapping fails or model is deprecated (R1), fallback to GLM-4.7
     if (!nvidiaNimModel || nvidiaNimModel.includes('deepseek-r1')) {
+      console.warn(`⚠️ Model ${model} not found or deprecated. Falling back to GLM-4.7`);
       nvidiaNimModel = 'z-ai/glm4.7';
     }
 
@@ -151,10 +147,9 @@ async function handleChat(req, res) {
       created: Math.floor(Date.now() / 1000),
       model: model || 'gpt-4o',
       choices: response.data.choices.map((choice, index) => {
-        // Get the content
         let content = choice.message?.content || '';
         
-        // FORCE 4 PARAGRAPH LIMIT - Physically trim excess paragraphs
+        // FORCE 4 PARAGRAPH LIMIT
         const paragraphs = content.split(/\n\n+/).filter(p => p.trim().length > 0);
         if (paragraphs.length > 4) {
           content = paragraphs.slice(0, 4).join('\n\n');
@@ -191,7 +186,6 @@ async function handleChat(req, res) {
     });
   }
 }
-
 // Chat completions - main endpoint
 app.post('/v1/chat/completions', handleChat);
 
