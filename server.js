@@ -6,57 +6,17 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Increase payload limit
 
-const NIM_API_KEY = process.env.NIM_API_KEY || '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';
-
-// Rate limiting for DuckDuckGo searches
-let lastSearchTime = 0;
-const SEARCH_COOLDOWN = 30000; // 30 seconds between searches
-
-// Search function
-async function searchDuckDuckGo(query) {
-  const now = Date.now();
-  
-  // Rate limit check
-  if (now - lastSearchTime < SEARCH_COOLDOWN) {
-    const waitTime = Math.ceil((SEARCH_COOLDOWN - (now - lastSearchTime)) / 1000);
-    throw new Error(`Rate limit: Please wait ${waitTime} seconds before next search`);
-  }
-  
-  try {
-    console.log(`🔍 Searching DuckDuckGo: "${query}"`);
-    
-    const results = await search(query, {
-      safeSearch: 0 // Off for mature content
-    });
-    
-    lastSearchTime = now;
-    
-    // Format results
-    if (results && results.results && results.results.length > 0) {
-      const formatted = results.results.slice(0, 5).map((r, i) => 
-        `[${i + 1}] ${r.title}\n${r.description}\nURL: ${r.url}`
-      ).join('\n\n');
-      
-      console.log(`✅ Found ${results.results.length} results`);
-      return formatted;
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('❌ DuckDuckGo search failed:', error.message);
-    return null;
-  }
-}
+const NIM_API_KEY = process.env.NIM_API_KEY;
 
 // Model mapping - Maps Janitor AI model names to NVIDIA NIM models
 const MODEL_MAPPING = {
   // DeepSeek models
-  'gpt-4o': 'deepseek-ai/deepseek-r1-0528',
+  'gpt-4o': 'deepseek-ai/deepseek-v3.2',  // Changed from R1 (removed)
   'gpt-4': 'deepseek-ai/deepseek-v3.2',
   'gpt-3.5-turbo': 'deepseek-ai/deepseek-v3.1',
-  'deepseek-r1': 'deepseek-ai/deepseek-r1-0528',
+  'deepseek-r1': 'deepseek-ai/deepseek-v3.2',  // R1 removed, use V3.2
   'deepseek-v3.1': 'deepseek-ai/deepseek-v3.1',
   'deepseek-v3.2': 'deepseek-ai/deepseek-v3.2',
   'deepseek-terminus': 'deepseek-ai/deepseek-v3.1-terminus',
@@ -120,15 +80,15 @@ async function handleChat(req, res) {
     const { model, messages, temperature, max_tokens, stream } = req.body;
 
     // Determine which NVIDIA model to use
-    let nvidiaNimModel = MODEL_MAPPING[model] || 'deepseek-ai/deepseek-r1-0528';
+    let nvidiaNimModel = MODEL_MAPPING[model] || 'z-ai/glm4.7';
 
     console.log(`Request: ${model} → Using: ${nvidiaNimModel}`);
 
     const response = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions', {
       model: nvidiaNimModel,
       messages: messages,
-      temperature: temperature || 0.8,
-      max_tokens: max_tokens || 3000,
+      temperature: temperature || 0.5,
+      max_tokens: max_tokens || 200,  // Reduced to avoid payload errors
       stream: false
     }, {
       headers: {
