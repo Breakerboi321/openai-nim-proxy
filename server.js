@@ -123,21 +123,19 @@ async function handleChat(req, res) {
 
     console.log(`Request: ${model} → Using: ${nvidiaNimModel}`);
 
-    // Add timeout and better config
-    const response = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions', {
-      model: nvidiaNimModel,
-      messages: messages,
-      temperature: temperature || 0.7,
-      max_tokens: max_tokens || 500,  // Increased from 200
-      top_p: 0.9,
-      stream: false
-    }, {
-      headers: {
-        'Authorization': `Bearer ${NIM_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      timeout: 60000  // 60 second timeout
-    });
+   const response = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions', {
+  model: nvidiaNimModel,
+  messages: messages,
+  temperature: temperature || 0.7,
+  max_tokens: max_tokens || 800,
+  stream: false
+}, {
+  headers: {
+    'Authorization': `Bearer ${NIM_API_KEY}`,
+    'Content-Type': 'application/json'
+  },
+  timeout: 120000  // 120 seconds (2 minutes) for slow models
+});
 
     // Check if response is valid
     if (!response.data || !response.data.choices || response.data.choices.length === 0) {
