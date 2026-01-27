@@ -105,29 +105,44 @@ async function handleChat(req, res) {
 
     const { model, messages, temperature, max_tokens, stream } = req.body;
 
-    // Attempt to map the requested model
+    // Model lookup with proper fallback
     let nvidiaNimModel = MODEL_MAPPING[model];
-
-    // If mapping fails or model is deprecated (R1), fallback to GLM-4.7
+    
+    // If not in mapping, check if it's already a valid NVIDIA model ID format
+    if (!nvidiaNimModel) {
+      if (model && model.includes('/') && !model.includes('deepseek-r1')) {
+        nvidiaNimModel = model;
+      }
+    }
+    
+    // Final fallback to DeepSeek V3
     if (!nvidiaNimModel || nvidiaNimModel.includes('deepseek-r1')) {
-      console.warn(`⚠️ Model ${model} not found or deprecated. Falling back to GLM-4.7`);
-      nvidiaNimModel = 'z-ai/glm4.7';
+      console.log(`⚠️ Model '${model}' not found, using fallback: deepseek-ai/deepseek-v3`);
+      nvidiaNimModel = 'deepseek-ai/deepseek-v3';
     }
 
     console.log(`Request: ${model} → Using: ${nvidiaNimModel}`);
 
+    // Add timeout and better config
     const response = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions', {
       model: nvidiaNimModel,
       messages: messages,
-      temperature: temperature || 0.5,
-      max_tokens: max_tokens || 200,
+      temperature: temperature || 0.7,
+      max_tokens: max_tokens || 500,  // Increased from 200
+      top_p: 0.9,
       stream: false
     }, {
       headers: {
         'Authorization': `Bearer ${NIM_API_KEY}`,
         'Content-Type': 'application/json'
-      }
+      },
+      timeout: 60000  // 60 second timeout
     });
+
+    // Check if response is valid
+    if (!response.data || !response.data.choices || response.data.choices.length === 0) {
+      throw new Error('Empty response from NVIDIA API');
+    }
 
     const openaiResponse = {
       id: `chatcmpl-${Date.now()}`,
@@ -135,6 +150,7 @@ async function handleChat(req, res) {
       created: Math.floor(Date.now() / 1000),
       model: model || 'gpt-4o',
       choices: response.data.choices.map((choice, index) => {
+        // Get the content
         let content = choice.message?.content || '';
         
         // FORCE 4 PARAGRAPH LIMIT
@@ -160,9 +176,22 @@ async function handleChat(req, res) {
       }
     };
     
+    console.log(`✓ Response sent: ${openaiResponse.choices[0].message.content.substring(0, 50)}...`);
     res.json(openaiResponse);
+    
   } catch (error) {
     console.error('Proxy error:', error.message);
+    
+    if (error.code === 'ECONNABORTED') {
+      return res.status(504).json({
+        error: {
+          message: 'Request timed out after 60 seconds',
+          type: 'timeout_error',
+          code: 504
+        }
+      });
+    }
+    
     console.error('Error details:', error.response?.data);
     
     res.status(error.response?.status || 500).json({
