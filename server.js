@@ -10,61 +10,49 @@ app.use(express.json({ limit: '10mb' }));
 
 const NIM_API_KEY = process.env.NIM_API_KEY;
 
-// Model mapping - Maps Janitor AI model names to NVIDIA NIM models
 const MODEL_MAPPING = {
-  // DeepSeek models - R1 REMOVED Jan 26, 2026
+  // DeepSeek models - CORRECTED IDs
   'gpt-4o': 'deepseek-ai/deepseek-v3.2',
   'gpt-4': 'deepseek-ai/deepseek-v3.2',
   'gpt-3.5-turbo': 'deepseek-ai/deepseek-v3.1',
+  'deepseek-v3': 'deepseek-ai/deepseek-v3',  // Changed from v3.1
   'deepseek-v3.1': 'deepseek-ai/deepseek-v3.1',
   'deepseek-v3.2': 'deepseek-ai/deepseek-v3.2',
-  'deepseek-terminus': 'deepseek-ai/deepseek-v3.1-terminus',
+  'deepseek-ai/deepseek-v3.2': 'deepseek-ai/deepseek-v3.2',  // ADD THIS
   
-  // Meta Llama models
+  // Kimi models - CORRECTED (moonshot**ai**, not moonshotai)
+  'kimi-k2-thinking': 'moonshotai/kimi-k2-thinking',
+  'kimi-thinking': 'moonshotai/kimi-k2-thinking',
+  'moonshotai/kimi-k2-thinking': 'moonshotai/kimi-k2-thinking',  // ADD THIS
+  'kimi-k2': 'moonshotai/kimi-k2-instruct',
+  'kimi-k2-instruct': 'moonshotai/kimi-k2-instruct',
+  
+  // GLM models - CORRECT
+  'glm-4.7': 'z-ai/glm4.7',
+  'glm4.7': 'z-ai/glm4.7',
+  'z-ai/glm4.7': 'z-ai/glm4.7',  // ADD THIS
+  
+  // Meta Llama - Keep as is
   'llama-3.1-405b': 'meta/llama-3.1-405b-instruct',
   'llama-405b': 'meta/llama-3.1-405b-instruct',
   'llama-3.1-70b': 'meta/llama-3.1-70b-instruct',
   'llama-70b': 'meta/llama-3.1-70b-instruct',
   'llama-3.1-8b': 'meta/llama-3.1-8b-instruct',
   'llama-3.3-70b': 'meta/llama-3.3-70b-instruct',
-  'llama-nemotron': 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
-  'nemotron-ultra': 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
   
-  // Mistral models
-  'mistral-7b': 'mistralai/mistral-7b-instruct-v0.3',
-  'mixtral-8x7b': 'mistralai/mixtral-8x7b-instruct-v0.1',
-  'mixtral-8x22b': 'mistralai/mixtral-8x22b-instruct-v0.1',
-  
-  // Google Gemma models
-  'gemma-27b': 'google/gemma-3-27b-it',
-  'gemma-12b': 'google/gemma-3-12b-it',
-  'gemma-4b': 'google/gemma-3-4b-it',
-  
-  // Qwen models
+  // Qwen - Keep as is
   'qwen-72b': 'qwen/qwen2.5-72b-instruct',
   'qwen-7b': 'qwen/qwen2.5-7b-instruct',
-  'qwen-32b': 'qwen/qwen2.5-32b-instruct',
-  'qwen-14b': 'qwen/qwen2.5-14b-instruct',
-  'qwen-3-next-80b': 'qwen/qwen3-next-80b-a3b-thinking',
-  'qwen-coder-32b': 'qwen/qwen3-coder-32b-instruct',
   
-  // Kimi (Moonshot AI) models
-  'kimi-k2': 'moonshotai/kimi-k2-instruct',
-  'kimi-k2-0905': 'moonshotai/kimi-k2-instruct-0905',
-  'kimi-k2-thinking': 'moonshotai/kimi-k2-thinking',
-  'kimi-thinking': 'moonshotai/kimi-k2-thinking',
+  // Mistral - Keep as is
+  'mistral-7b': 'mistralai/mistral-7b-instruct-v0.3',
+  'mixtral-8x7b': 'mistralai/mixtral-8x7b-instruct-v0.1',
   
-  // GLM models (Zhipu AI / Z.AI)
-  'glm-4.7': 'z-ai/glm4.7',
-  'glm4.7': 'z-ai/glm4.7',
-  
-  // OpenAI GPT-OSS
-  'gpt-oss-120b': 'openai/gpt-oss-120b',
-  'gpt-oss-20b': 'openai/gpt-oss-20b',
-  
-  // Alternative mappings
-  'claude-3-opus': 'meta/llama-3.1-405b-instruct',
-  'claude-3-sonnet': 'meta/llama-3.1-70b-instruct'
+  // Remove these (not on NVIDIA NIM):
+  // ❌ 'deepseek-terminus'
+  // ❌ 'nemotron-ultra'
+  // ❌ 'gpt-oss-120b'
+  // ❌ 'gemma-3-*' models
 };
 
 // Health check
