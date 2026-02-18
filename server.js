@@ -27,10 +27,11 @@ const MODEL_MAPPING = {
   'kimi-k2': 'moonshotai/kimi-k2-instruct',
   'kimi-k2-instruct': 'moonshotai/kimi-k2-instruct',
   
-  // GLM models - CORRECT
-  'glm-4.7': 'z-ai/glm4.7',
-  'glm4.7': 'z-ai/glm4.7',
-  'z-ai/glm4.7': 'z-ai/glm4.7',  // ADD THIS
+  // GLM Models
+'glm-5': 'z-ai/glm5',
+'glm5': 'z-ai/glm5',
+'z-ai/glm5': 'z-ai/glm5',
+'glm-4.7': 'meta/llama-3.1-70b-instruct',  // Keep fast fallback
   
   // Meta Llama - Keep as is
   'llama-3.1-405b': 'meta/llama-3.1-405b-instruct',
