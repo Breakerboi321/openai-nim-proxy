@@ -60,7 +60,12 @@ app.get('/health', (req, res) => {
     api_key_configured: !!NIM_API_KEY,
     node_version: process.version,
     total_models: Object.keys(MODEL_MAPPING).length,
-    service: 'NVIDIA NIM Proxy for Janitor AI'
+    service: 'NVIDIA NIM Proxy for Janitor AI',
+    limits: {
+      express_body_limit: '100mb',
+      axios_max_body_length: 'Infinity',
+      axios_max_content_length: 'Infinity'
+    }
   });
 });
 
@@ -143,8 +148,14 @@ async function handleChatCompletion(req, res) {
 
     console.log(`[${requestId}] Requested model: ${model}`);
     console.log(`[${requestId}] Messages: ${messages.length}`);
-    console.log(`[${requestId}] Request size: ${JSON.stringify(req.body).length} bytes`);
+    console.log(`[${requestId}] Request size: ${JSON.stringify(req.body).length} bytes (${(JSON.stringify(req.body).length / 1024).toFixed(2)} KB)`);
     console.log(`[${requestId}] Max tokens: ${max_tokens}`);
+    
+    // Log if conversation is very large
+    const requestSizeKB = JSON.stringify(req.body).length / 1024;
+    if (requestSizeKB > 1024) {
+      console.log(`[${requestId}] ⚠️ LARGE REQUEST: ${(requestSizeKB / 1024).toFixed(2)} MB`);
+    }
 
     // Determine NVIDIA model to use
     let nvidiaNimModel = MODEL_MAPPING[model] || model;
@@ -250,6 +261,22 @@ async function handleChatCompletion(req, res) {
     console.error(`\n[${requestId}] ========== ERROR ==========`);
     console.error(`[${requestId}] Type: ${error.name}`);
     console.error(`[${requestId}] Message: ${error.message}`);
+    console.error(`[${requestId}] Code: ${error.code}`);
+    
+    // Debug: Check if it's a size limit error
+    if (error.message.includes('maxBodyLength') || error.message.includes('body') || error.code === 'ERR_FR_MAX_BODY_LENGTH_EXCEEDED') {
+      console.error(`[${requestId}] ❌ SIZE LIMIT ERROR DETECTED`);
+      console.error(`[${requestId}] Request body size was: ${JSON.stringify(req.body).length} bytes`);
+      
+      return res.status(500).json({
+        error: {
+          message: 'CRITICAL: Size limit error persists despite Infinity setting. This may be an axios bug. Try updating axios or contact support.',
+          type: 'size_limit_error',
+          request_size_bytes: JSON.stringify(req.body).length,
+          debug_info: error.message
+        }
+      });
+    }
 
     // Handle timeout
     if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
