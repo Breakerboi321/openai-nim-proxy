@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 10000;
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '100mb' })); // Very high limit for unlimited conversation history
 
 // Environment variable
 const NIM_API_KEY = process.env.NIM_API_KEY;
@@ -143,6 +143,7 @@ async function handleChatCompletion(req, res) {
 
     console.log(`[${requestId}] Requested model: ${model}`);
     console.log(`[${requestId}] Messages: ${messages.length}`);
+    console.log(`[${requestId}] Request size: ${JSON.stringify(req.body).length} bytes`);
     console.log(`[${requestId}] Max tokens: ${max_tokens}`);
 
     // Determine NVIDIA model to use
