@@ -129,7 +129,7 @@ async function handleChatCompletion(req, res) {
       model, 
       messages, 
       temperature = 0.7, 
-      max_tokens = 800,
+      max_tokens = 2000,  // Increased default from 800 to 2000
       top_p = 0.9,
       frequency_penalty = 0,
       presence_penalty = 0
@@ -296,9 +296,19 @@ async function handleChatCompletion(req, res) {
     // Handle NVIDIA API errors
     if (error.response) {
       console.error(`[${requestId}] NVIDIA Status: ${error.response.status}`);
-      console.error(`[${requestId}] NVIDIA Error:`, error.response.data);
+      console.error(`[${requestId}] NVIDIA Error:`, JSON.stringify(error.response.data, null, 2));
       
       // Specific error handling
+      if (error.response.status === 401) {
+        return res.status(401).json({
+          error: {
+            message: 'Invalid NVIDIA API key. Generate a new key at build.nvidia.com and update NIM_API_KEY in Render environment variables.',
+            type: 'invalid_api_key',
+            code: 401
+          }
+        });
+      }
+      
       if (error.response.status === 429) {
         return res.status(429).json({
           error: {
@@ -319,6 +329,27 @@ async function handleChatCompletion(req, res) {
         });
       }
       
+      if (error.response.status === 404) {
+        return res.status(404).json({
+          error: {
+            message: `Model '${nvidiaNimModel}' not found on NVIDIA NIM. Use /v1/models to see available models.`,
+            type: 'model_not_found',
+            code: 404,
+            requested_model: nvidiaNimModel
+          }
+        });
+      }
+      
+      if (error.response.status === 503 || error.response.status === 502) {
+        return res.status(503).json({
+          error: {
+            message: 'NVIDIA API is temporarily unavailable. Try again in a few minutes or use a different model.',
+            type: 'service_unavailable',
+            code: error.response.status
+          }
+        });
+      }
+      
       if (error.response.status === 504) {
         return res.status(504).json({
           error: {
@@ -335,6 +366,18 @@ async function handleChatCompletion(req, res) {
           type: 'nvidia_api_error',
           code: error.response.status,
           nvidia_error: error.response.data
+        }
+      });
+    }
+    
+    // Handle network errors (can't reach NVIDIA at all)
+    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+      console.error(`[${requestId}] ❌ Network error: ${error.code}`);
+      return res.status(503).json({
+        error: {
+          message: `Cannot connect to NVIDIA API (${error.code}). Check your internet connection or NVIDIA may be down.`,
+          type: 'network_error',
+          code: error.code
         }
       });
     }
@@ -408,6 +451,11 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('   gpt-4     → Llama 70B (great balance)');
   console.log('   llama-70b → Direct Llama 70B');
   console.log('   qwen-72b  → Direct Qwen 72B');
+  console.log('========================================');
+  console.log('📝 Token Limits:');
+  console.log('   Default: 2000 tokens (up to 3000 max)');
+  console.log('   GLM-5: Up to 4000 tokens');
+  console.log('   Paragraphs: Up to 6 paragraphs');
   console.log('========================================');
   console.log('⚠️  GLM-5 available but VERY SLOW (2-3 min)');
   console.log('   Use glm-5 only if you can wait');
