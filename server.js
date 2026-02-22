@@ -63,8 +63,8 @@ app.get('/health', (req, res) => {
     service: 'NVIDIA NIM Proxy for Janitor AI',
     limits: {
       express_body_limit: '100mb',
-      axios_max_body_length: 'Infinity',
-      axios_max_content_length: 'Infinity'
+      axios_max_body_length: '100MB',
+      axios_max_content_length: '100MB'
     }
   });
 });
@@ -265,15 +265,15 @@ async function handleChatCompletion(req, res) {
     
     // Debug: Check if it's a size limit error
     if (error.message.includes('maxBodyLength') || error.message.includes('body') || error.code === 'ERR_FR_MAX_BODY_LENGTH_EXCEEDED') {
-      console.error(`[${requestId}] ❌ SIZE LIMIT ERROR DETECTED`);
+      console.error(`[${requestId}] ❌ SIZE LIMIT ERROR`);
       console.error(`[${requestId}] Request body size was: ${JSON.stringify(req.body).length} bytes`);
       
-      return res.status(500).json({
+      return res.status(413).json({
         error: {
-          message: 'CRITICAL: Size limit error persists despite Infinity setting. This may be an axios bug. Try updating axios or contact support.',
-          type: 'size_limit_error',
+          message: `Request too large (${(JSON.stringify(req.body).length / 1024).toFixed(2)} KB). Limit is 100MB. Your conversation history may be extremely long. Try starting a new chat.`,
+          type: 'payload_too_large',
           request_size_bytes: JSON.stringify(req.body).length,
-          debug_info: error.message
+          limit_bytes: 100000000
         }
       });
     }
