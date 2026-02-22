@@ -78,10 +78,90 @@ app.get('/', (req, res) => {
     endpoints: {
       health: 'GET /health',
       models: 'GET /v1/models',
-      chat: 'POST /v1/chat/completions'
+      chat: 'POST /v1/chat/completions',
+      test: 'GET /test-nvidia'
     },
     documentation: 'https://github.com/Breakerboi321/openai-nim-proxy'
   });
+});
+
+// Test NVIDIA API connection
+app.get('/test-nvidia', async (req, res) => {
+  console.log('\n🔍 Testing NVIDIA API connection...');
+  
+  if (!NIM_API_KEY) {
+    return res.status(500).json({
+      status: 'error',
+      message: 'NIM_API_KEY not configured',
+      fix: 'Set NIM_API_KEY in Render environment variables'
+    });
+  }
+  
+  try {
+    // Test with smallest/fastest model
+    const testResponse = await axios.post(
+      'https://integrate.api.nvidia.com/v1/chat/completions',
+      {
+        model: 'meta/llama-3.1-8b-instruct',
+        messages: [{ role: 'user', content: 'Hi' }],
+        max_tokens: 10
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${NIM_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 30000
+      }
+    );
+    
+    console.log('✅ NVIDIA API test successful!');
+    
+    res.json({
+      status: 'success',
+      message: 'NVIDIA API is reachable and your API key works!',
+      test_model: 'meta/llama-3.1-8b-instruct',
+      response_time: testResponse.headers['x-response-time'] || 'N/A',
+      api_key_valid: true
+    });
+    
+  } catch (error) {
+    console.error('❌ NVIDIA API test failed:', error.message);
+    
+    if (error.response) {
+      console.error('Status:', error.response.status);
+      console.error('Data:', error.response.data);
+      
+      return res.status(error.response.status).json({
+        status: 'error',
+        message: 'NVIDIA API error',
+        error_code: error.response.status,
+        error_detail: error.response.data,
+        fixes: {
+          401: 'Invalid API key - Generate new at build.nvidia.com',
+          402: 'API credits exhausted - Generate new key',
+          429: 'Rate limited - Wait 60 seconds',
+          404: 'Model not found',
+          503: 'NVIDIA API temporarily down'
+        }[error.response.status] || 'Unknown error'
+      });
+    }
+    
+    // Network error
+    return res.status(503).json({
+      status: 'error',
+      message: 'Cannot connect to NVIDIA API',
+      error_code: error.code,
+      error_message: error.message,
+      possible_causes: [
+        'Invalid/expired API key',
+        'Network connectivity issue',
+        'NVIDIA API is down',
+        'Render firewall blocking connection'
+      ],
+      fix: 'Generate a NEW API key at build.nvidia.com and update in Render'
+    });
+  }
 });
 
 // List available models
