@@ -1,27 +1,14 @@
 {
   "name": "nvidia-nim-proxy",
   "version": "2.0.0",
-  "description": "OpenAI-compatible proxy for NVIDIA NIM API - Optimized for Janitor AI and Chub",
+  "description": "OpenAI-compatible proxy for NVIDIA NIM API",
   "main": "server.js",
   "engines": {
     "node": "20.x"
   },
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node server.js"
   },
-  "keywords": [
-    "nvidia",
-    "nim",
-    "openai",
-    "proxy",
-    "janitor-ai",
-    "chub",
-    "llama",
-    "deepseek"
-  ],
-  "author": "Breakerboi321",
-  "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",
     "cors": "^2.8.5",
